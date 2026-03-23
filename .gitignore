@@ -1,0 +1,8 @@
+*.Rproj
+*.RData
+*.RDS
+*.Rhistory
+*.ent
+US_Accidents_March23.csv
+.Rproj.user/
+cache/
