@@ -55,7 +55,7 @@ kzp <- function(y, m=length(y), k=1, f_range = NULL, ncores = 1)
   ## parallelized over the frequencies to be evaluate
   z_tmp <- parallel::mclapply(
     X = f_est[1]:f_est[2],
-    FUN = function(i, x, m, k) kzft(x,f=i/m,m,k=k),
+    FUN = function(i, x, m, k) kzft(x,f=i/m,m=m,k=k),
     x = y, m = m, k=k,
     mc.cores = ncores
   )
@@ -113,3 +113,55 @@ plot.kzp <- function(x, remove0 = TRUE, scale = NA, ylab = '', ...) {
   }
 }
 
+nonlinearity.kzp<-function(x)
+{
+  n<-length(x)
+  
+  s<-rep(0,n)
+  for (t in 2:(n-1)) {
+    s[t]<-abs(x[t+1]-2*x[t]+x[t-1])
+  }
+  
+  sq<-array(0, dim=c(n, n))
+  
+  for (i in (1:n)) for (j in (2:n)) {
+    sq[i,j]<-sum(s[(max(1,(i-j+1))):(min(n,(i+j-1)))])
+  }
+  return(list(total=sum(s), matrix=sq))
+}
+
+variation.kzp<-function(x)
+{
+  n<-length(x)
+  s=c(diff(x)^2,0)
+  
+  q<-array(0, dim=c(n, n))
+  for (i in (1:n)) for (j in (2:n)) {
+    q[i,j]<-sum(s[(max(1,(i-j+1))):(min(n,(i+j-2)))])
+  }
+  return(list(total=sum(s), matrix=q))
+}
+
+smooth.kzp <- function(object, log=TRUE, smooth_level=0.05, method = "DZ")
+{
+  if (class(object)!='kzp') stop ("Object type needs to be kzp.")
+  n<-length(object$periodogram)
+  spg<-rep(0,n)
+  m<-rep(0,n)
+  
+  if (log==TRUE) p=log(object$periodogram) else p=object$periodogram
+  if (method == "DZ") q<-variation.kzp(p)
+  else if (method == "NZ") q<-nonlinearity.kzp(p)
+  
+  cc<-smooth_level*q$total
+  
+  for ( i in (1:n) ) {
+    m[i]<-sum(q$matrix[i,1:n]<=cc)
+    
+    spg[i]<-mean(p[(max(1,(i-m[i]+1))):(min(n,(i+m[i]-1)))])
+  }
+  
+  object$smooth_periodogram<-spg
+  object$smooth_method=method
+  return(object)
+}

@@ -65,6 +65,45 @@ tibble(t = simdat$time,
   geom_line(aes(t, x)) +
   geom_line(aes(t, y), color = "red") +
   geom_line(aes(t, pred), color = "blue")
+  
+  
+  
+  ## eda
+  dat %>%
+    mutate(kz1 = kza::kz(.$x, m = 24*7*3+1, k = 3),
+           kz2 = kza::kz(.$x, m = 24*7*5+1, k = 3),
+           kz3 = kza::kz(.$x, m = 24*7*7+1, k = 3),
+           kz4 = kza::kz(.$x, m = 24*7*11+1, k = 3)) %>%
+    select(t_start, kz1, kz2, kz3, kz4) %>%
+    tidyr::pivot_longer(cols = c(kz1, kz2, kz3, kz4),
+                        values_to = "energy", names_to = "name") %>%
+    ggplot(aes(t_start, energy, color = name)) +
+    geom_line()
+  
+  ## estimate key constituents over years
+  dat2 <- tibble(t_start = seq(from = as.POSIXct("2016-03-24 00:00:00", tz = 'EST'),
+                               to = as.POSIXct("2023-04-01 00:00:00", tz = 'EST'),
+                               by = "hour"),
+                 t_end = t_start + 60^2) %>%
+    mutate(t = row_number()) %>%
+    relocate(t) %>%
+    left_join(cap, join_by(overlaps(t_start, t_end, Start_Time, End_Time, bounds = "[)") )) %>%
+    mutate(energy = difftime(pmin(t_end, End_Time),
+                             pmax(t_start, Start_Time), units = "hours") %>%
+             as.numeric() %>%
+             tidyr::replace_na(0)) %>%
+    filter(t_start >= as.POSIXct("2019-01-01 00:00:00", tz = 'EST'),
+           t_start < as.POSIXct("2023-03-01 00:00:00", tz = 'EST')) %>%
+    group_by(t, t_start, t_end) %>%
+    summarise(x = sum(energy)) %>%
+    ungroup()
+  
+  f_components2 <- matrix(nrow = nrow(dat2), ncol = nrow(f_include))
+  
+  for (i in 1:ncol(f_components2)) {
+    f_components2[, i] <- kzft(dat2$x, f = f_include$f[i], m = 168*13, k = 5)
+  }
+  
 
 
 

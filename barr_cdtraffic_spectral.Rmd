@@ -1,30 +1,41 @@
 ---
-title: "Spectral Analysis of Traffic Accidents in New York's Capital Region"
-subtitle: |
+title: |
+  | Spectral Analysis of Traffic Accidents in New York's Capital Region
   |
   | by
   | Michael Barr
   |
   |
-  | A Thesis Submitted to the University at Albany, State University of New York in Partial Fulfillment of the Requirements for the Degree of Master of Science, Biostatistics
+  | A Thesis
+  | Submitted to the University at Albany, State University of New York
+  | in Partial Fulfillment of the Requirements for the Degree of
+  | Master of Science, Biostatistics
   |
   |
   | College of Integrated Health Sciences
   | Department of Biostatistics
+  | 
+  | 
 date: "May 2026"
 documentclass: report
 output: 
   pdf_document:
+    latex_engine: pdflatex
     fig_caption: yes
 geometry: margin=1in
 fontsize: 12pt
 header-includes:
+  - \usepackage{titling}
+  - \pretitle{\begin{center}\normalsize}
+  - \posttitle{\end{center}}
+  - \predate{\begin{center}\normalsize}
+  - \postdate{\end{center}}
   - \usepackage[font={footnotesize}]{caption}
   - \setlength{\parindent}{2em}
   - \usepackage{indentfirst}
   - \usepackage{setspace}
   - \doublespacing
-  - \setlength{\parskip}{0pt} 
+  - \setlength{\parskip}{0pt}
   - \usepackage{etoolbox}
   - \AtBeginEnvironment{Shaded}{\singlespace}
   - \usepackage{endnotes}
@@ -43,9 +54,9 @@ knitr::opts_chunk$set(echo = FALSE,
 \pagenumbering{roman}
 \setcounter{page}{2}
 
-\centerline{\Large\bf Abstract}
+## Abstract
 
-In this paper we estimate the spectral density of traffic accident events in the Capital Distict, NY area using a band-pass filter known as the Kolmogorov-Zurbenko Fourier Transform (KZFT). The source data is provided by Moosavi, et al. (2019) and originally captured from various public entities and sensors in the road network. KZFT and spectral analysis methods in general are more typically applied to signals which are highly determined by physical forces and processes - objects that spin, oscillate, vibrate, orbit, and so on. Spectral density estimation with KZFT suppresses noise to reveal a greater number of constituent frequencies in the signal compared to standard fourier analysis. We are able to produce more accurate estimated energies, in particular for the many lesser harmonics of the fundamental weekly frequency detected in accident patterns. Signal reconstruction based on KZFT produces the approximate weekly pattern of this noisy signal which is not governed by any underlying physical processes transmitting sinusoidal waveform energy. Our novel application of these methods to population patterns measured by highly random loss events demonstrates their potential for greater adoption among researchers working with signals from varied fields.
+In this paper we estimate the spectral density of traffic accident events in the Capital Distict, NY area using a band-pass filter known as the Kolmogorov-Zurbenko Fourier Transform (KZFT). The source data is provided by Moosavi, et al. (2019) and originally captured from various public entities and sensors in the road network. Spectral density estimation with KZFT suppresses noise to reveal a greater number of constituent frequencies in the signal compared to standard fourier analysis. We are able to produce more accurate estimated energies, in particular for the many lesser harmonics of the fundamental weekly frequency detected in accident patterns. Signal reconstruction based on KZFT produces the approximate weekly pattern of this noisy signal which is not governed by any underlying physical processes transmitting sinusoidal waveform energy. KZFT and spectral analysis methods in general are more typically applied to signals which are highly determined by physical forces and processes - objects that spin, oscillate, vibrate, orbit, and so on. Our novel application of these methods to population patterns measured by highly random loss events demonstrates their potential for greater adoption among researchers working with signals from varied fields.
 
 ```{r libs, include = FALSE}
 library(lubridate)
@@ -57,7 +68,7 @@ library(gridExtra)
 library(scales)
 library(tidyr)
 library(doParallel)
-# library(extrafont)
+library(kableExtra)
 source("kzft.R")
 
 # font_import("/usr/local/lib/R/site-library/extrafontdb/metrics/")
@@ -90,14 +101,14 @@ dat <- tibble(t_start = seq(from = as.POSIXct("2016-03-24 00:00:00", tz = 'EST')
   mutate(t = row_number()) %>%
   relocate(t) %>%
   left_join(cap, join_by(overlaps(t_start, t_end, Start_Time, End_Time, bounds = "[)") )) %>%
-  mutate(power = difftime(pmin(t_end, End_Time),
+  mutate(energy = difftime(pmin(t_end, End_Time),
                           pmax(t_start, Start_Time), units = "hours") %>%
            as.numeric() %>%
            tidyr::replace_na(0)) %>%
   filter(t_start >= as.POSIXct("2019-01-01 00:00:00", tz = 'EST'),
          t_start < as.POSIXct("2020-01-01 00:00:00", tz = 'EST')) %>%
   group_by(t, t_start, t_end) %>%
-  summarise(x = sum(power)) %>%
+  summarise(x = sum(energy)) %>%
   ungroup()
 
 rm(acc)
@@ -105,18 +116,23 @@ gc()
 saveRDS(dat, "dat.RDS")
 ```
 
+```{r}
+## source data for git repo
+write.csv(cap, "cap.csv", row.names = FALSE)
+```
+
 \newpage
 \pagenumbering{arabic}
 
 ## Introduction
 
-High frequency, remotely-sensed data is increasingly available to researchers in industry, government, and academia. Sensors have long been utilized to measure and monitor a wide variety of phenomena and conditions in environmental (air quality, ocean tides, atmospheric pressure, seismic activity), industrial or mechanical equipment (heat, vibration, alignment, etc. within motors, gearboxes, pumps, and various rotating equipment), built infrastructure (e.g. vibration sensors for structural health monitoring of bridges), and many other areas. Technological innovation on multiple fronts in recent years has reduced the size and cost of sensor hardware, increased options for connectivity (i.e. with short-range/bluetooth connectivity to smartphones and local wireless networks), and exponentially reduced the cost of physical data storage. These developments have fostered a massive expansion of "smart" product offerings for consumer and commercial applications including wearable biometric monitoring devices, home systems monitoring (moisture/leak and arc fault detection), and telematics devices which measure aspects of vehicle usage and driving behavior (acceleration/deceleration, speed, time of day). Many of these and other applications are linked to insurance products with the purpose of measuring, pricing for, and reducing the risk of loss events affecting health or property.
+High frequency, remotely-sensed data is increasingly available to researchers in industry, government, and academia. Sensors have long been utilized to measure and monitor a wide variety of phenomena and conditions in environmental (air quality, ocean tides, atmospheric pressure, seismic activity), industrial or mechanical equipment (heat, vibration, alignment, etc. within motors, gearboxes, pumps, and various rotating equipment), built infrastructure (e.g. vibration sensors for structural health monitoring of bridges), and many other areas. Technological innovation on multiple fronts in recent years has reduced the size and cost of sensor hardware (Microsoft 2019)^[The average unit cost of an IoT sensor fell from \$1.30 in 2004 to \$0.44 in 2019 according to Microsoft's 2019 Manufacturing Trends Report], increased options for connectivity (e.g. with short-range/bluetooth connectivity to smartphones, local wireless networks, and private 5G wireless networks in some commercial settings), and exponentially reduced the cost of physical data storage (McCallum 2023). These developments have fostered a massive expansion of "smart" product offerings for consumer and commercial applications including wearable biometric monitoring devices, home systems monitoring (temperature, moisture/leak, and arc fault detection), and automotive telematics devices measuring aspects of vehicle usage and driving behavior (acceleration/deceleration, speed, location, time of day). Many of these and other applications are linked to insurance products with the purpose of measuring, pricing for, and studying the effects of interventions designed to reduce the risk of loss events affecting health or property (Gundla 2025).
 
-The increased deployment of sensors and the data streams they produce demands statistical methodologies suited for their analysis. A series of measurements taken sequentially over time - whether at regular or irregularly spaced intervals - is a time series. Methods for the analysis of time series have perhaps received less attention than warranted, possibly due to the concurrent development and focus on new machine learning techniques for regression analysis and advanced prediction systems in the context of data that is tabular, un-ordered, and rich with covariates. To the extent that methods for time series are given attention it is usually limited to time-domain methods - the auto-regressive model and its extensions.
+The increased deployment of sensors and the data streams they produce demands practitioners who are equipped with the statistical methodologies suited for their analysis. A series of measurements taken sequentially over time - whether at regular or irregularly spaced intervals - is a time series. Methods for the analysis of time series have in our view received less attention than warranted. This could be due in part to the concurrent development and focus on new machine learning techniques for regression analysis and advanced prediction systems in the context of data that is tabular, un-ordered, and rich with covariates. To the extent that methods for time series are given attention it is usually limited to time-domain methods - the auto-regressive model and its extensions.
 
-The task of this paper is to demonstrate the relevance of "the other half" of time series analysis - spectral analysis - for data we may not immediately see as calling for it. Part I of this paper provides a brief motivation for spectral analysis with an overview of key concepts building to the frequency domain and the (Fast) Fourier Transform. From this groundwork we proceed to discuss a class of methods known as Kolmogorov-Zurbenko (KZ) Filters. In Part II we discuss in detail the extension of the KZ filter to spectral density analysis with the Kolmogorov-Zurbenko Fourier Transform (KZFT) band-pass filter. Part III demonstrates application of KZFT to a traffic accident event data set sourced from publicly available, streaming APIs which monitor and report traffic incidents in real-time.
+The task of this paper is to demonstrate the relevance of "the other half" of time series analysis - spectral analysis - for data we may not immediately see as calling for it. Part I of this paper provides a brief motivation for spectral analysis with an overview of key concepts building to the frequency domain and the (Fast) Fourier Transform. From this groundwork we proceed to discuss the Kolmogorov-Zurbenko (KZ) Filter, a method for extracting frequencies from signals in the time domain. In Part II we discuss the extension of the KZ filter to spectral density analysis with the Kolmogorov-Zurbenko Fourier Transform (KZFT) band-pass filter. Part III demonstrates application of KZFT to a traffic accident event data set sourced from publicly available, streaming APIs which monitor and report traffic incidents in real-time. KZFT reveals a fundamental weekly frequency with harmonics underlying the signal we construct from this event data. We use the results to reconstruct the pattern of the signal and compare the result to the a "null" model obtained in the time domain.
 
-## Part I: Motivation
+## Part I: Background
 
 ### Temporal and Frequency Domains
 
@@ -139,11 +155,11 @@ sim_snr <- var(simdat$y)/var(simdat$r)
 sim_snr2 <- var(simdat$y)/var(simdat$r2)
 ```
 
-Assume a random variable $X_t$ occurring in time which is the result of some data generating process involving deterministic and stochastic components. A time-series is a sequence of measurements $\{X(t): t\in 0,1,2,...,n\}$ taken of $X_t$, recorded successively, indexed and ordered in time. $X_t$ may be multivariate - each measurement $X(t)$ a vector of values - but for simplicity we will only deal with the univariate case - we assume $X_t$ is scalar-valued. We will also assume $X_t$ is real-valued though this is not strictly necessary. A time series is the result of a data generating process as well as some repeatable means of obtaining and recording measurements - which may be imprecise - of the observable value at points in time. We will refer to the means of obtaining measurements as a *sensor*. A series of measurements taken of $X_t$ is often referred to as the "raw" signal or simply the *signal*.
+Assume a random variable $X_t$ varying over time, the result of some data generating process involving both deterministic and stochastic components. A time-series is a sequence of measurements $\{X(t): t\in 0,1,2,...,n\}$ taken of $X_t$, recorded successively, indexed and ordered in time. $X_t$ may be multivariate - that is, each measurement $X(t)$ a vector of values. For simplicity we will deal with the univariate case - we assume $X_t$ is scalar-valued. We will also assume $X_t$ is real-valued though this is not strictly necessary. A time series is the result of a data generating process along with some repeatable means of obtaining and recording measurements - which may be imprecise - of the observable value at points in time. We will refer to the means of obtaining measurements generally as a *sensor*. A sensor may refer to anything from a piece of electronic hardware recording and digitally transmitting readings to a human recording measurements with the aid of a primitive mechanical instrument. A series of measurements obtained of $X_t$ is often referred to as the "raw signal" or simply the *signal*.
 
-Methods for time-series analysis may seek to describe the deterministic and stochastic components embedded in $X_t$, often by estimating a model from the data. Analysis methods can be classed into two broad categories. *Time-domain* methods work with the readings or *total energy* of the observed signal in the time domain we naturally perceive it. This includes any approach which views the data temporally - whether calculating a simple moving average, estimating an AR(p) model and its variations, or training an LSTM. Such methods are well-suited for signals which do not contain many underlying cyclical components - e.g. when $X_t$ is highly determined by recent lagged values $X_{t-1}, X_{t-2},...$ and so on. A brownian motion in its discrete form, the random walk, is the archetypical example.
+Methods for time-series analysis may seek to describe the deterministic and stochastic components embedded in $X_t$, often by estimating a model from the signal. Analysis methods can be classed into two broad categories. *Time-domain* methods work with the measurements or *total energy* of the observed signal in the time domain we naturally perceive and record it. This includes any approach which views the data temporally, whether calculating a simple moving average, estimating an AR(p) model and its variations, or training a Long Short-Term Memory network. Such methods are often best suited for signals which do not contain many underlying cyclical components - e.g. when $X_t$ is highly determined by the most recent lagged values $X_{t-1}, X_{t-2},...$. A brownian motion in its discrete form - also known as a random walk - is the archetypical example.
 
-When the data generating process underlying a signal is more complex - that is, when it is governed by multiple cyclical components - then analysis in the time domain quickly becomes intractable. *Frequency-domain* methods begin with some means of transforming a time-indexed signal into the frequency domain in order that we may better detect and describe the cyclical components ("constituents" or "waveforms") embedded in a complex and potentially noisy signal.
+When the data generating process underlying a signal is more complex - that is, when it is governed by multiple cyclical components - then analysis in the time domain can quickly become intractable. *Frequency-domain* methods begin with some means of transforming a time-indexed signal into a spectrum of estimated energies in order that we may better detect and describe the cyclical components ("constituents" or "waveforms") embedded in a complex and potentially noisy signal.
 
 Figure 1 illustrates the issue with a simulated signal (top) generated by three cyclical constituents (together the "systematic component") and a white noise (the stochastic component). The expected value of the generating function is shown in total (second panel) and decomposed into its three constituents (third). The stochastic component is also shown (bottom).
 
@@ -196,15 +212,15 @@ grid.arrange(
 )
 ```
 
-Even a relatively simple signal like above poses a challenge for analysis in the time domain. Consider the de-noised signal - after removing the stochastic component it remains not obvious what underlies the pattern we observe in time. We can detect the dominant frequency at .08 (period = 12.5), but the relative magnitude at this frequency varies as it is modulated by phase-alignment with the waveform at frequency .10 every 4th period. The absolute magnitude is also seen to cycle more slowly with the third constituent. None of this is apparent in the raw signal, however, which appears very messy in the time domain despite a relatively high signal-to-noise ratio of .446. Though an AR(2) model can be used to perfectly describe a single sine wave without noise, the order required becomes prohibitively high as a signal becomes more complex. Analyzing partial autocorrelation is not a help because - like the AR(p) model - it is based in the assumption that the greatest predictive information is found in the nearest lagged values. In fact the predictive information for the next value $X(t)$ is found in the lags corresponding to the cycle times (multiples of$\frac{1}{f_{\nu}}$) of each waveform embedded in the signal - e.g. $X(t-10)$, $X(t-20)$,...,$X(t-\frac{c}{0.1})$ for a waveform present at frequency $f_{.1}$.
+Even a relatively simple signal like above poses a challenge for analysis in the time domain. Consider the de-noised signal - after removing the stochastic component it remains not obvious what underlies the pattern we observe in time. We can detect the dominant frequency at .08 (period = 12.5), but the relative magnitude at this frequency varies as it is modulated by phase-alignment with the waveform at frequency .10 every 4th period. The absolute magnitude is also seen to cycle more slowly with the third constituent. None of this is apparent in the raw signal, however, which appears very messy in the time domain despite a relatively high signal-to-noise ratio of .446. Though an AR(2) model can be used to perfectly describe a single sine wave without noise, the order required becomes prohibitively high as a signal becomes more complex. Analysis of partial autocorrelation is not a help because - like the AR(p) model - it is based in the assumption that the greatest predictive information is found in the nearest lagged values. In fact the predictive information for the next value $X(t)$ is found in the lags corresponding to the cycle times (multiples of $\frac{1}{f_{\nu}}$) of each waveform embedded in the signal - e.g. $X(t-10)$, $X(t-20)$,...,$X(t-\frac{c}{0.1})$ for a waveform present at frequency $f_{.1}$. When random variation is present in the signal, the auto-regressive model is misspecified and estimates obtained from this approach are biased.
 
 ```{r AR, fig.show='hold', out.width = '50%', fig.cap = "(left) Using PACF to detect the order, or key lags, of an AR(p) model for a single sine wave at $f_{\\frac{1}{12}}$ without noise; (right) PACF applied to the simulated $X_t$ with SNR=.446"}
 par(mar=c(4,4,.1,.1))
-pacf(simdat$c1, lag.max = 15, main = NA)
-pacf(simdat$x, lag.max = 200, main = NA)
+pacf(simdat$c1, lag.max = 15, main = NA, ci=0)
+pacf(simdat$x, lag.max = 200, main = NA, ci=0)
 ```
 
-This signal can be neatly summarized within the frequency domain. A periodogram represents an actual or, more often, the estimated power spectrum, that is, the power ($=\text{energy}^2$) of assumed sinusoid waveforms oscillating at each observable "frequency bin" from $f_0$ (the "DC component" or mean power level) up to the Nyquist limit $\frac{f_S}{2}$ (half the sampling rate of the signal). The power spectrum behind a signal may in some cases be known but usually, for a signal found "in nature" and measured in a research context, it must be estimated in the presence of noise. If we can identify the constituent frequencies which determine a signal, estimate their respective energy levels and phase or offset at $t=0$, then we can describe and reconstruct the non-random component of the signal. We can also use the information to forecast future values of $X_t$ yet to be realized, assuming the process is stationary. Figure 3 shows the (known) PSD of the deterministic component generating the above signal.
+This signal can be neatly summarized within the frequency domain. A periodogram represents the actual or, more often, estimated spectrum of a signal. It is often presented on the power ($=\text{energy}^2$) scale, but may be shown on energy or information scales, may be log-transformed, and may or may not be normalized for the number of samples in the signal. When presented on the power scale as is convention we may refer to it as the power spectral density (PSD). Regardless of these scaling choices, the estimates describe assumed sinusoidal waveforms oscillating at each observable "frequency bin" or Fourier frequency from $f_0$ (the "DC component" or mean power level) up to the Nyquist limit $\frac{f_S}{2}$ (half the sampling rate of the signal). The power spectrum behind a signal may in some cases be known, but usually for a signal found "in nature" and measured in a research context it must be estimated in the presence of noise. If we can identify the constituent frequencies which determine a signal, estimate their respective energy levels and phase or offset at $t=0$, then we can describe and reconstruct the unobservable systematic component behind the signal. We can also use this information to forecast future values of $X_t$ yet to be realized, assuming the process is stationary over time. Figure 3 shows the (known) PSD of the deterministic component generating the above signal.
 
 ```{r sim_period, fig.align='center', out.width='50%', fig.cap="Theoretical periodogram (systematic component) of simulated signal"}
 ggplot() +
@@ -222,28 +238,23 @@ ggplot() +
     panel.background = element_blank()) 
 ```
 
-The basic task of spectral analysis is to decompose a potentially complex and noisy signal into a set of non-random constituent waveforms and residual variance or unexplained noise by estimating the distribution of power across a spectrum of observable frequencies, also known as the Power Spectral Density (PSD). The periodogram is classically defined as $\frac{1}{N}|FFT(X_t)|^2$ based on the Fast Fourier Transform of $X_t$. As an estimator for the PSD this approach is asymptotically unbiased but also inconsistent and high variance - the result is often a highly noisy power spectrum which does not become smoother with greater samples. We desire an estimator $\theta$ which is not necessarily unbiased but instead optimizes a trade-off between bias and variance to minimize mean square error of the estimator.
-
+The basic task of spectral analysis is to decompose a potentially complex and noisy signal into a set of non-random constituent waveforms and residual variance or unexplained noise by estimating the distribution of power across a spectrum of observable frequencies. The periodogram is classically defined as $\frac{1}{N}|FFT(X_t)|^2$ based on the Fast Fourier Transform of $X_t$. The inverse FFT applied to the transformed signal returns the original signal. The transform then can be thought of as a saturated model - it produces a function over the frequency domain with as many parameters as there are samples in the time domain. As an estimator for the PSD this approach is asymptotically unbiased but also inconsistent and high variance - the result is often a highly noisy power spectrum which does not become smoother with greater samples. We desire an estimator $\theta$ which is not necessarily unbiased but instead optimizes a trade-off between bias and variance to minimize mean square error of the estimator.
 $$MSE(\theta) = bias_{\theta}^2 + var(\theta)$$
 We now turn to reviewing the foundational method of spectral density analysis known as the fourier transform.
 
 ### Fourier Transform
 
-It is well known that any function $X(t)$ defined over a self-symmetric domain can be decomposed into even and odd parts, and therefore uniquely expressed as the sum of an even and odd function.
+It is well known that any function $f(t)$ defined over a self-symmetric domain can be decomposed into even and odd parts, and therefore uniquely expressed as the sum of an even and odd function.
 $$
-X(t) = X_e(t) + X_o(t)
+f(t) = f_e(t) + f_o(t)
 $$
+$cos(t)$ is an even function - i.e. it is symmetrical about the y-axis ($cos(-x) = cos(x)$), and $sin(t)$ is an odd function ($sin(-t) = -sin(t)$). A sine function can of course be written as a cosine with phase shift $\phi=\frac{\pi}{2}$. In general, a sine wave with phase offset can be expressed as a linear combination of a sine and cosine each without phase:  $a\sin(t + \phi) = a \cos(\phi) \sin(t) + a \sin(\phi) \cos(t)$. Put another way, one sine and one cosine function with identical period and 0 phase together form a complete (and othogonal) basis set for expressing an arbitrary sine function of the same period. This fact can be generalized to the complex case:
+$$ja\sin(t + \phi) = z \big(\cos(t) + j\sin(t)\big)$$
 \noindent
-$cos(t)$ is an even function - i.e. it is symmetrical about the y-axis ($cos(-x) = cos(x)$), and $sin(t)$ is an odd function ($sin(-t) = -sin(t)$). 
-
-Of course a sine wave is just a cosine with phase shift $\phi=\frac{\pi}{2}$. In general, a sine wave with phase offset can be expressed as a linear combination of a sine and cosine each without phase:  $a\sin(t + \phi) = a \cos(\phi) \sin(t) + a \sin(\phi) \cos(t)$. Put another way, one sine and one cosine function with identical period together form a complete (and othogonal) basis set for expressing an arbitrary sine function of the same period. This fact can be generalized to the complex case:
-$$ia\sin(t + \phi) = z \big(\cos(t) + i\sin(t)\big)$$
-\noindent
-where z is a complex-valued constant containing both $a$ and $\phi$. We can allow that the imaginary part of the left term may be 0 - so we can express a sinusoid on the real plain with non-zero phase as the scaled sum of complex-valued sine and cosine waves without phase.
+where z is a complex-valued constant containing both $a$ and $\phi$. We can allow that the imaginary part of the left term may be 0 - so we can express a sinusoid on the real plain with non-zero phase as the scaled sum of complex-valued sine and cosine functions without phase.
 
 Finally, by Euler's identity we know that $e^{jt} = \cos(t) + j\sin(t)$, so the expression above can be restated as
 $$ja\sin(t + \phi) = ze^{jt}$$
-
 The Fourier Transform allows us to express any function $f(t)$ over a time domain as the integral of sine functions $F(\nu)$ spanning the frequency domain, each of them parameterized by some amplitude and phase.
 $$
 \begin{aligned}
@@ -251,18 +262,18 @@ f(t) &= \frac{1}{2\pi} \int^{\infty}_{-\infty} F(\nu)e^{j\nu (t)}d\nu \\
 F(\nu) &= A(\nu)e^{j\phi(\nu)}
 \end{aligned}
 $$
-Each $F(\nu)$ is a complex exponential at a given frequency. The set of all $F(\nu)$ forms a complete and orthogonal basis in the frequency dimension - they are pairwise independent and can be linearly combined to represent an arbitrary function.
+Each $F(\nu)$ is a complex exponential at a given frequency. The set of all $F(\nu)$ forms a complete and orthogonal basis in the frequency dimension - they are pairwise independent and can be linearly combined to represent an arbitrary function $f(t)$.
 
-Though we experience it every day, typically we cannot work with data in continuous time. Either our sensors will have a sampling rate or an analogue (continuous) signal must be digitized (sampled) for storage. So all time-series will be defined by a sampling rate and our methods will work in discrete time. The Discrete Fourier Transform (DFT) analogue to the above is more relevant in practice for regularly spaced signal data. The DFT is defined as
+Though we experience it every day, typically we cannot work with data in continuous time. Either our sensors will have a sampling rate or an analogue (continuous) signal must be digitized (sampled) for storage. So all signals will be defined by a sampling rate $f_S = \frac{1}{dt}$ and our methods will work in discrete time. The Discrete Fourier Transform (DFT) analogue to the above is more relevant in practice for regularly spaced signal data. The DFT is defined as
 $$
-X_k = \sum_{n=0}^{N-1}x_n e^{-j2\pi k \frac{n}{N}}
+F(k) = \sum_{t=0}^{N-1}X_t e^{-j2\pi k \frac{t}{N}}
 $$
 \noindent
-with $k$ the frequency index, $n$ the time index, and $N$ the number of samples in the series. The frequency index is the period for each waveform - a cycle repeating every 24 hours has frequency 1/24 = .0416667 in a signal with hourly sampling rate, and frequency 1/288 = .0034722 given readings every 5 minutes. In the DFT output these will be located at index 24 (the 25th frequency bin) or 288, the input signal and transformed output each indexed from 0.
+with $k$ the frequency index, $t$ the time index, and $N$ the number of samples in the signal. The frequency index $k$ corresponds to physical frequency $\frac{k}{N}f_S$.
 
-Spectral density analysis was enabled in principle by the development of what came to be known as the Fourier Transform, based on work published by Jean-Baptiste Joseph Fourier in the 1820s in his study of heat transfer (Valentinuzzi, 2016).^[Fourier first wrote down his equations in an 1807 manuscript, and later in his 1822 published work. But as is often the case it appears Carl Friedrich Gauss was first to discover the method in 1805 along with an efficient "divide and conquer" algorithm for its computation which closely resembles the FFT algorithm developed 160 years later.] But it was its implementation via the Cooley-Tukey algorithm - the Fast Fourier Transform (FFT) - in 1965 that made spectral analysis feasible in the modern setting. Most algorithms today are implemented using FFT rather than direct calculation from the definition due to the difference in computational complexity. Direct calculation of the DFT from its definition requires $O(N^2)$ operations for the full spectrum, while FFT reduces this to $O(N\log N)$. This means for a series of 1,000 samples the DFT performs 1,000,000 operations while FFT requires only 6,908. The performance gain comes with a key limitation - missing values cannot be present in the input signal due to the recursive approach of the FFT algorithm.
+Spectral density analysis was enabled in principle by the development of what came to be known as the Fourier Transform based on work published by Jean-Baptiste Joseph Fourier in the 1820s in his study of heat transfer (Valentinuzzi, 2016).^[Fourier first wrote down his equations in an 1807 manuscript, and later in his 1822 published work. But as is often the case it appears Carl Friedrich Gauss was first to discover the method in 1805 along with an efficient "divide and conquer" algorithm for its computation which closely resembles the FFT algorithm developed 160 years later.] But it was its implementation via the Cooley-Tukey algorithm - the Fast Fourier Transform (FFT) - in 1965 that made spectral analysis feasible in the modern setting. Most algorithms today are implemented using FFT rather than direct calculation from the definition due to the difference in computational complexity. Direct calculation of the DFT from its definition requires $O(N^2)$ operations for the full spectrum, while FFT reduces this to $O(N\log N)$. This means for a series of 1,000 samples the DFT performs 1,000,000 operations while FFT requires only 6,908. The performance gain comes with a key limitation - missing values cannot be present in the input signal due to the recursive approach of the FFT algorithm.
 
-While the FFT-based periodogram is a useful tool for many cases, it does not have the properties needed to reliably serve as an estimator for the power spectrum, in particular as signals become more complex and when signal-to-noise is low. More commonly approaches to PSD estimation will build from FFT a consistent and/or lower variance estimator either by smoothing the above result or through strategies of repeated application on subsets of the total signal. Variations include application of spline smoothers to the spectral density, different strategies fro breaking up the original signal into blocks and applying FFT to each separately before combining (averaging) results (Short-Time Fourier Transform), and applying FFT repeatedly within a sliding window over the data (Sliding Window Fourier Transform).
+FFT is unreliable as an estimator for the PSD, in particular when signal-to-noise is low and waveforms are located near one another in the spectrum. Common approaches to PSD estimation will build from FFT a consistent estimator either by smoothing the spectral output or through different strategies of repeated application to subsets of the total signal. Variations of the latter include breaking up the original signal into equal size blocks which may or may not overlap and applying FFT separately to each before combining results (Short-Time Fourier Transform), and applying FFT repeatedly within a sliding window over the data (Sliding Window Fourier Transform). In place of a rectangular window, tapering windows are often preferred to reduce signal side lobes, which has the effect of reducing sharp discontinuities at the edges of a signal which contribute to high frequency noise. Windowing sacrifices frequency resolution in order to obtain the variance reduction produced by averaging of multiple estimates, and in particular when non-rectangular windows are used (Harris, 1978).
 
 ```{r, fig.show = 'hold', out.width='50%', fig.cap = "Periodogram from FFT (normalized for sample size and expressed in energy/amplitude) on simulated data with SNR=.446 (left) and with noise amplified to SNR=.05 (right). The estimates are poor at either noise level. The $f_\\frac{1}{12.5}$ (amplitude = .5) constituent is nearly buried in the higher noise."}
 par(mar=c(4,4,.1,.1))
@@ -270,15 +281,22 @@ par(mar=c(4,4,.1,.1))
 plot(x = seq(0, .5, by = 1/8640),
      y=(2*abs(fft(simdat$x))/(nrow(simdat)))[1:4321],
      ylim = c(0,2), type = "l", ylab = "", xlab = "Frequency")
+abline(h = 0.5, col = "red", lty = 2, lwd = .2)
+abline(h = 1.0, col = "red", lty = 2, lwd = .2)
+abline(h = 1.5, col = "red", lty = 2, lwd = .2)
+
 ## scaled the original noise
 plot(x = seq(0, .5, by = 1/8640),
      y = (abs(2*fft(simdat$x2))/(nrow(simdat)))[1:4321],
      ylim = c(0,2), type = "l", ylab = "", xlab = "Frequency")
+abline(h = 0.5, col = "red", lty = 2, lwd = .2)
+abline(h = 1.0, col = "red", lty = 2, lwd = .2)
+abline(h = 1.5, col = "red", lty = 2, lwd = .2)
 ```
 
 ### Waveform Shapes
 
-Fourier analysis decomposes a function or signal into a weighted sum of sinusoidal components which form a complete basis set. This can be done even if the original signal is not generated by sinusoidal constituent because sine waves may be combined to approximate waveforms of arbitrary shapes. Typical examples include rectangular, triangular, and sawtooth patterns. The spectra in each case is characterized by energies at different multiples or *harmonics* of the fundamental frequencies at which these waveforms are present.
+Although FFT uses a basis of sinusoidal waveforms to decompose a signal in the frequency domain, the waveforms actually present need not be sinusoidal for the result to be meaningful. Sinusoids may be combined to approximate waveforms of arbitrary shape. Some examples which arise include rectangular, triangular, and sawtooth patterns in time. The spectra produced by FFT in such cases are characterized by energies located at multiples or *harmonics* of the fundamental frequency at which a waveform is located. So long as cyclic behavior is present, spectral analysis with FFT and its variations is viable.
 
 ```{r, fig.show = 'hold', out.width = '50%', fig.cap = "Segment from a composite signal of 2 rectangular waveforms with periods .05 and .025, and its reconstruction (left); the energy density estimated by FFT (right). The reconstruction is performed using the 10 harmonics with highest energy and the $f_0$ component."}
 par(mar=c(4,4,.1,.1))
@@ -309,17 +327,15 @@ plot(x = seq(0, .5, by = 1/8640),
      ylim = c(0,2), type = "l", ylab = "Energy", xlab = "Frequency")
 ```
 
-
-
 We return now to the temporal domain to introduce the KZ filter, upon which the KZFT method for spectral density estimation is based.
 
 ### Kolmogorov-Zurbenko Filter
 
-The KZ filter is a sliding window arithmetic mean (simple average) applied *k*-times iteratively to a signal Let $\{X(t): t = 0, \pm1, \pm2,...\}$ be a real-valued, univariate time series at any measurement interval. For one iteration ($k=1$), the KZ filter applied at observation $X(t)$ is given by:
+Often the analysis of a signal exhibiting a high degree of noise begins with some simple exploratory techniques. A signal may be "smoothed" with some parametric or nonparametric approach to reduce the presence of noise and extract cyclical patterns. The KZ is a relatively simple non-parametric approach for this task, defined as a sliding window arithmetic mean applied *k*-times iteratively to a signal. Let $\{X(t): t = 0, \pm1, \pm2,...\}$ be a real-valued, univariate time series at any measurement interval. Then for one iteration ($k=1$), the KZ filter applied at observation $X(t)$ is given by:
 $$
 KZ_{m,k=1}\big(X(t)\big) = \sum_{s=-(m-1)/2}^{(m-1)/2} X(t+s) \times \frac{1}{m}
 $$
-where $m$ odd is the bandwidth of the chosen window. This is simply the average of those values falling within the window centered at time $t$.^[Also known as a uniform kernel smoother in some fields.] With $k>1$ iterations the smoothing of the series is repeated on the result of the preceding iteration. The KZ filter can then be defined generally as
+where $m$ odd is the bandwidth of the chosen window. With $k>1$ iterations the smoothing of the series is repeated on the result of the preceding iteration. The KZ filter can then be defined generally as
 $$
 KZ_{m,k}\big(X(t)\big) = \sum_{s=-k(m-1)/2}^{k(m-1)/2} X(t+s) \times a_{s}^{m,k}
 $$
@@ -327,7 +343,8 @@ where coefficients $a_s^{m,k}$ are the observation weights determined by polynom
 $$
 a_s^{m,k} = \frac{c_s^{k,m}}{m^k} = \frac{1}{m^k}\sum_{r=0}^{k(m-1)}z^rc^{k,m}_{r-k(m-1)/2} = \frac{1}{m^k}(1+z+...+z^{m-1})^k
 $$
-The coefficients allow the iterative result to be calculated directly from the $k(m-1)+1$ values about $X(t)$ with increased efficiency. They can be interpreted as the probability mass function arising from a convolution of $k$ discrete uniform distributions on the interval $[X(t)-\frac{m-1}{2}, X(t)+\frac{m-1}{2}]$. The result for $k>1$ is a tapering window with finite support which approaches a gaussian distribution in the limit of $k$.
+
+The coefficients allow the iterative result to be calculated directly from the $k(m-1)+1$ values about $X(t)$ efficiently. They are interpreted as the probability mass function arising from a convolution of $k$ discrete uniform distributions on the interval $[X(t)-\frac{m-1}{2}, X(t)+\frac{m-1}{2}]$. The result for $k>1$ is a tapering window with finite support which approaches a gaussian distribution in the limit of $k$.
 
 ```{r uni_conv, fig.show='hold', fig.height=2.5, fig.width=4, fig.cap = "The filter produced by KZ(5,k) for k = 1,...,4."}
 convuni <- tibble(t = c(1:19,1:19)-.5,
@@ -382,11 +399,12 @@ convuni %>%
 )
 ```
 
-The KZ filter is classed as a "low-pass" filter in the field of signal analysis - high ("fast") frequencies are suppressed in the filter output as an effect of the nearby readings, while low ("slow") frequencies are allowed to pass to the output. A "cut-off" frequency can be determined using an arbitrarily chosen threshold level of power suppression; the cut-off frequency will be lower with increasing window size $m$ and iterations $k$. A formula for the commonly referenced "half-power point" is given approximately as
+The KZ filter is classed as a "low-pass" filter in the field of signal analysis - high frequencies are suppressed in the filter output due to averaging of nearby readings, while low frequencies are allowed to pass to the filtered output. The proportion of energy passed from a given frequency can be determined with the energy transfer function provided by Yang and Zurbenko (2010). A "cut-off" frequency can also be determined for an arbitrary threshold level of attenuation; the cut-off frequency will be lower with increasing window size $m$ and iterations $k$. A formula for the commonly referenced "half-power point" is given by
 $$
 \nu_c \approx \frac{\sqrt{6}}{\pi}\sqrt{\frac{1 - .5^{\frac{1}{2k}}}{m^2 - .5^{\frac{1}{2k}}}}
 $$
-The two parameters are often determined heuristically along with knowledge of the underlying process, the desired frequencies to be suppressed or retained, and the noise apparent in the signal. Working with hourly temperature data strongly governed by diurnal and annual constituents, for example, a 5-day window ($m=240$) and 1 or 2 iterations is sufficient to suppress the daily cycle, yet variance owing to exogenous factors (e.g. periods of cloud cover) and otherwise random fluctuations may dictate a larger window, perhaps 15 days, and maybe 2 or 3 iterations to realize the underlying annual component.
+
+Selection of the two parameters are often determined heuristically along with knowledge of the underlying process, a desired cutoff point, and the noise apparent in the signal. Working with hourly temperature data strongly governed by diurnal and annual constituents, for example, a 5-day window ($m=240$) and 1 or 2 iterations could be sufficient to suppress the daily cycle. Yet variance owing to exogenous factors (e.g. periods of cloud cover) and otherwise unexplained or random fluctuations may lead to selecting a larger window - perhaps 15 days - and perhaps 2 or 3 iterations to obtain the underlying annual component.
 
 ```{r kz_demo, fig.height = 3, fig.cap = "(left) Simulated signal, the $f_{168}$ constituent, and output of KZ filter applied with m=37 and k=1,2,3; (right) zoomed in and with the raw signal removed."}
 kz_demo <- simdat %>%
@@ -408,7 +426,9 @@ grid.arrange(nrow = 1,
                theme(legend.title = element_blank(),
                      legend.position = "inside",
                      legend.position.inside = c(.5, .93),
-                     legend.background = element_blank()) +
+                     legend.background = element_blank(),
+                     legend.text = element_text(size = 6),
+                     legend.key = element_rect(fill = NA)) +
                guides(color = guide_legend(nrow = 2, byrow = TRUE)),
              
              kz_demo %>%
@@ -416,15 +436,15 @@ grid.arrange(nrow = 1,
                       name != "signal") %>%
                ggplot(aes(time, energy, color = name)) +
                geom_line() +
-               scale_color_manual(values = c("red", "green", "purple", "orange")) +
+               scale_color_manual(values = c("black", "green", "purple", "orange")) +
                theme(legend.position = "none",
                      axis.title.y = element_blank())
 )
 ```
 
-The problem of determining optimal settings for these parameters may also be approached as an (unsupervised) machine learning task - i.e. by partitioning or re-sampling the data so that a grid search can be performed on the parameter space. Kernel smoothing methods generally do not provide forecasting ability, so some thought must be given to the sampling design. A loss function could be defined with terms representing the variances between smoothed results across re-samples or the out-of-fold/out-of-bag reconstruction error. For this simulated data, we find that $k=3$, $m=37$ (about 3 times the next highest constituent cycle-time) works well to obtain a result approximating the (known) lowest-frequency waveform.
+Determination of optimal settings for these parameters may be approached as an (unsupervised) machine learning task - i.e. by partitioning or re-sampling the data so that a grid search can be performed in a sensible region of the parameter space pre-determined with guidance from the formulas derived from the energy transfer function. Kernel smoothing methods generally do not provide forecasting ability, so validation cannot be performed out-of-time and some thought must be given to the in-sample design. A loss function could be constructed based on out-of-fold/out-of-bag reconstruction error and variance between smoothed results across (re-)samples.
 
-```{r}
+```{r, eval = FALSE}
 simdat %>%
   mutate(kz.71.1 = kza::kz(.$x, m = 37, k = 1),
          kz.71.2 = kza::kz(.$x, m = 37, k = 2),
@@ -443,11 +463,11 @@ simdat %>%
             mse5 = mean(e5^2))
 ```
 
-The KZ filter has useful properties which make it well-suited to de-noising signals (not limited to 1-dimensional types) and for separating waveforms embedded in noisy data. As a simple moving average it is robust to missing observations dispersed within the data (though longer runs of missingness become insurmountable as they approach and surpass the length of the window). At the most simple level it may be used for basic exploratory or graphical data analysis. For a more advanced application, it could be used as the basis of a filtering or convolution "layer" in neural network architectures to effectively extract embedded features for use downstream in the network.^[Zurbenko paper with image filtering from static] This paper's interest lies in its extension to the problem of estimating the spectral density of a signal, the focus to which we now turn.
+The KZ filter has useful properties which make it well-suited to de-noising signals and separating waveforms embedded in noisy data. As a simple moving average it is robust to missing observations dispersed within the data (though longer runs of missingness become insurmountable as they approach and surpass the length of the window). The method can be re-applied to a signal minus the output of a previous application of the method in order to isolate and remove increasingly higher frequencies sequentially. At the most simple level it may be used for basic exploratory or graphical data analysis. In more advanced applications, it could be used as the basis of a filtering or convolution layer(s) in neural network architectures to effectively extract embedded features for use downstream in the network.^[Chapter 10 of Žurbenko et al. (2021) demonstrates application of the KZ filter to image reconstruction and object boundary detection problems. While weights in a filtering layer are typically learned during network training, fixed weights are sometimes used with positive result where domain knowledge permits. See for example Dapello, et al (2020).] This paper's interest lies in its extension to the problem of estimating the spectral density of a signal, the focus to which we now turn.
 
 ## Part II - Kolmogorov-Zurbenko Fourier Transform
 
-We discussed the challenge of estimating spectra in the presence of noise with FFT. We also reviewed the KZ filter as an iterated sliding window moving average which suppresses the variance from certain sources - namely, the variance attributable to constituent waveforms located above a threshold frequency, to non-cyclical features of the data generating process, and to the stochastic variance of e.g. a white noise. The Kolmogorov-Zurbenko Fourier Transform (KZFT) extends the KZ filter into the frequency domain as a $k$-times iterated Sliding Window Fourier Transform with window size $m$ applied at some frequency $\nu$. A symmetric filter applied in the frequency domain determines a *range* of frequencies whose energy may pass through the filter while suppressing those which are more distant. KZFT is classed then as a *band-pass* filter because it is used to smooth a power estimate at a given frequency by suppressing energy leakage from more distant frequencies thereby regularizing estimates. 
+We discussed the challenge of estimating spectra in the presence of noise with FFT. We also reviewed the KZ filter as an iterated sliding window moving average which suppresses the variance from certain sources - namely, the variance attributable to constituent waveforms located above a threshold frequency, to non-cyclical features of the data generating process, and to the stochastic variance of e.g. a white noise. The Kolmogorov-Zurbenko Fourier Transform (KZFT) extends the KZ filter into the frequency domain as a $k$-times iterated Sliding Window Fourier Transform with window size $m$ applied at some frequency $\nu$. A symmetric filter applied in the frequency domain determines a *range* of frequencies whose energy may pass through the filter while suppressing those which are more distant. KZFT is classed then as a *band-pass* filter because it is used to attenuate energy leakage from distant frequencies, thereby improving estimates at target frequencies and regularizing spectral density estimates.
 
 ### Definition
 
@@ -457,14 +477,14 @@ F(t,\nu,M) = \frac{a}{2M+1}\sum^M_{s=-M} exp^{-is\nu}X(t+s)
 $$
 which is applied $K$ times iteratively to a signal of length $2MK + 1$. This can be expressed completely (with minor updates for consistency of notation and definitions) accounting for the iterations as:
 $$
-KZFT_{m,k,\nu_0}\big(X(t)\big) = F^{(k)}(t,\nu_0,m) = \sum^{k\frac{m-1}{2}}_{s={-k\frac{m-1}{2}}} a^{m,k}_s exp^{-i2s\nu_0}X(t+s)
+KZFT_{m,k,\nu}\big(X(t)\big) = F^{(k)}(t,\nu,m) = \sum^{k\frac{m-1}{2}}_{s={-k\frac{m-1}{2}}} a^{m,k}_s exp^{-i2s\nu}X(t+s)
 $$
-where $a^{m,k}_s$ are the same polynomial coefficient weights given previously. This provides an efficient estimator for power at the specified frequency $\nu_0$. Zurbenko (1986) shows that as an estimator for spectral density, KZFT is asymptotically nearly optimal from the point of view of mean square error under differentiability conditions on the spectral density.^[See Theorems 4.6 - 4.8, p.p. 96-97] To analyze the full spectrum within a window we apply the algorithm at every possible frequency up to $\frac{m-1}{2}$. Setting the window equal to the length of the original signal produces a power estimate similar to FFT in the first iteration. Subsequent iterations concentrate the weights locally and further attenuate the contribution of nearby frequencies. The 'sliding' of the window across the signal suggests that the power at a given frequency is estimated repeatedly - once at each index of the original signal - and the method produces power estimates which can then vary over time. KZFT is robust to non-stationarity as a result and can be used to detect changing patterns or power levels in any frequency.
+where $a^{m,k}_s$ are the same polynomial coefficient weights given previously. This provides an efficient estimator for power at the specified frequency $\nu$. Zurbenko (1986) shows that as an estimator for spectral density, KZFT is asymptotically nearly optimal from the point of view of mean square error under differentiability conditions on the spectral density.^[See Theorems 4.6 - 4.8, p.p. 96-97, and formulas 2.37-3.48, pp 123, Thm 2.6 pp 124 MSE establish satisfies theoretical optimal conditions] To analyze the complete spectrum within a window we apply the algorithm at each Fourier frequency from $f_0$ to $\frac{f_{m-1}}{2}$. Setting the window equal to the length of the original signal would produce a power spectrum similar to FFT in the first iteration. Subsequent iterations concentrate the weighting locally and further attenuate the contribution of outside frequencies. The 'sliding' of the window across the signal suggests that the power at a given frequency is estimated repeatedly - once at each index of the original signal - and the method produces estimates which can then vary over time. KZFT is robust to non-stationarity as a result and can be used to estimate energy dynamically over time.
 
-We contrast the results of the classical periodogram produced by FFT to the KZ-periodogram obtained from applying a $KZFT_{4200,6}$ to our simulated signal with .05 SNR. Our signal is a stationary by design so the spectrum is estimated as the average result over the full signal. On visual inspection we see both that the estimated magnitudes for the three constituent frequencies are closer to the true values and the variance of estimates for unrelated frequencies is reduced.
+We contrast the results of the classical periodogram produced by FFT (on energy scale) to the KZ-periodogram obtained from applying a $KZFT_{4200,6}$ to our simulated signal with .05 SNR. Our signal is stationary by design so a spectrum can be sensibly estimated as the average result over the full signal. On visual inspection we see clearly that the estimated energies for the three constituent frequencies are nearer the true values. The noise does not appear reduced in the remainder of the spectrum, however.
 
 ```{r kzft_simdat, cache = TRUE}
-kzp_sim_x2 <- kzp(simdat$x2, m = 4200, k = 6, ncores = 12)
+kzp_sim_x2 <- kzp(simdat$x2, m = 4201, k = 6, ncores = 12)
 saveRDS(kzp_sim_x2, "kzp_sim_x2.RDS")
 
 # tibble(x = kzp_sim_x2$periodogram/2100,
@@ -475,42 +495,48 @@ saveRDS(kzp_sim_x2, "kzp_sim_x2.RDS")
 kzp_sim_x2 <- readRDS("kzp_sim_x2.RDS")
 ```
 
-
-```{r kzft_compare, fig.show = 'hold', out.width='50%', fig.cap = "Spectral density (energy) based on FFT (left) and on $KZFT_{\\nu,4200,6}$ (right) applied over all measurable frequencies within the window to produce the KZ-periodogram"}
+```{r kzft_compare, fig.show = 'hold', out.width='50%', fig.cap = "Spectral density (energy) based on FFT (left) and on $KZFT_{\\nu,4200,6}$ to produce the KZ-periodogram (right)"}
 par(mar=c(4,4,.1,.1))
 
 plot(x = seq(0, .5, by = 1/8640),
      y = (abs(2*fft(simdat$x2))/(nrow(simdat)))[1:4321],
-     ylim = c(0.03, 1.53), type = "l", ylab = "Energy", xlab = "Frequency")
+     ylim = c(0.03, 1.5), type = "l", ylab = "Energy", xlab = "Frequency")
+abline(h = 0.5, col = "red", lty = 2, lwd = .2)
+abline(h = 1.0, col = "red", lty = 2, lwd = .2)
+abline(h = 1.5, col = "red", lty = 2, lwd = .2)
 
 plot(kzp_sim_x2, scale = "energy")
+abline(h = 0.5, col = "red", lty = 2, lwd = .2)
+abline(h = 1.0, col = "red", lty = 2, lwd = .2)
+abline(h = 1.5, col = "red", lty = 2, lwd = .2)
 ```
 
 ### Discussion
 
-This definition or at least what it implies for implementation is worth a more detailed discussion. First, in contrast with DFT, KZFT does not utilize all values in the signal but only those falling within the bandwidth of a convolved uniform kernel centered at $X(t)$. Let us begin in the middle of the signal at $X(0)$. At the first iteration, the DFT calculated at index 0 will include the contribution of nearby values $X(t);\ t:= -\frac{m-1}{2},...,0,...,\frac{m-1}{2}$. The second iteration takes the result from the first over the same indices - so $m$ outputs from the first pass are needed. Then the original samples contributing in the second pass are $X(t);\ t:= -\frac{2(m-1)}{2},...,-\frac{m-1}{2},...,0,...,\frac{m-1}{2},...,\frac{2(m-1)}{2}$. For each output value $F^{(k)}(t)$, the $k(m-1)+1$ values centered about $t$ from the original signal contribute subject to the attenuation produced by the tapering window. Practically this means that we must choose from among several options how to handle cases where the window extends beyond the tails of the signal:
+This definition or at least what it implies for implementation is worth a more detailed discussion. First, in contrast with the standard FFT, KZFT does not utilize all values in the signal but only those falling within the bandwidth of a convolved uniform kernel centered at $X(t)$. Let us begin in the middle of the signal at $X(0)$. At the first iteration, the DFT calculated at index 0 will include the contribution of nearby values $X(t);\ t:= -\frac{m-1}{2},...,0,...,\frac{m-1}{2}$. The second iteration takes the result from the first over the same indices - so $m$ outputs from the first pass are needed. Then the original samples contributing in the second pass are $X(t);\ t:= -\frac{2(m-1)}{2},...,-\frac{m-1}{2},...,0,...,\frac{m-1}{2},...,\frac{2(m-1)}{2}$. For each output value $F^{(k)}(t)$, the $k(m-1)+1$ values centered about $t$ from the original signal contribute subject to the attenuation produced by the weights of the tapering window. Practically this means that we must choose from among several options how to handle cases where the window extends beyond the tails of the signal:
 
 1. accept an output length reduced by $k(m-1)$ (half reduction at each end), in essence discarding these estimates;
 1. pad the original series with zeroes so that the filter may be centered at each value of the input signal but suppressing (biasing toward 0) the power estimates near the tails;
 1. allow for an asymmetrically shrinking window, down to a "half+1" window at the extremes (increasing the variance of estimates).
 
-For a long series and/or short window this may have no practical consequence for estimates. Increasing either the window size or the number of iterations will of course increase the extent of the window loss at each end of the signal, which can meaningfully increase the variance of estimates when dealing with short (relative to the desired window length) time series.
+For a long series and/or short window this may have no practical consequence for estimates. Increasing either the window size or the number of iterations will of course increase the extent of window loss at each end of the signal, which can meaningfully increase the variance of estimates when dealing with short (relative to the desired window length) time series.
 
-KZFT is naturally robust to non-stationarity though this will also depend on the window size and time frame over which the non-stationarity is detectable. A window which is far larger than necessary if interested only in higher frequencies will permit a non-stationary component in the process to impact estimates if it is not nearly stationary within the window. In this case, a smaller window will resolve the issue while preserving the ability to detect the higher frequencies of interest. If non-cyclical trends or breaks/state changes are apparent within a more reasonable window then it may be necessary to de-trend or otherwise adjust the original signal prior to analysis, if possible.
+KZFT is naturally robust to non-stationarity, though this will also depend on the window size and time frame over which the non-stationarity is detectable. A window which is far larger than necessary if interested only in higher frequencies will permit a non-stationary component in the process to impact estimates if it is not "nearly" stationary within the window. In this case, a smaller window will resolve the issue while preserving the ability to detect the higher frequencies of interest. If non-cyclical trends or breaks/state changes are apparent within a smaller window then it may be necessary to de-trend or otherwise adjust the original signal prior to analysis, if possible.
 
-Finally, available implementations are based on repeated direct calculations of the DFT - i.e. not utilizing the FFT algorithm. This allows for missing observations but at added computational cost. Within a window $m$ the algorithm is $O(m)$ complex at a single observation $X(t)$ for a single frequency $\nu_0$ and for one iteration. If we evaluate all frequency bins within the window (estimating the power spectrum) then it becomes $O(m^2)$ complex, equivalent to a DFT of a signal length $m$. Repeating at every value of the input signal (a sliding window) produces $O(nm^2)$ complexity *per iteration* and ultimately $O(knm^2)$ complexity in total. In other words, the computational cost scales poorly with window size. Consider a series of length 8,760 representing hourly readings taken over a year's time. Producing the KZ-periodogram with a window of length 169 (about a week) requires about 250.2 million operations per iteration - not terrible for modern hardware - but with a window length 4,369 (about 6 months) the overhead grows to 167.2 billion per iteration - or about 502 billion in total if $k=3$ iterations is desired. The prohibitive cost may demand some creativity by the user needing to analyze the lower end of a spectrum. Some options are:
+Finally, available implementations are based on repeated direct calculations of the DFT - i.e. not utilizing the FFT algorithm. This allows for missing observations but at added computational expense. Within a window $m$ the algorithm is $O(m)$ complex at a single observation $X(t)$ for a single frequency $\nu$ and for one iteration. If we evaluate all fourier frequencies within the window (estimating the power spectrum at one location) then this becomes $O(m^2)$ complex - equivalent to the DFT of a signal length $m$. Repeating at every value of the input signal (a sliding window) produces $O(nm^2)$ complexity *per iteration* and ultimately $O(knm^2)$ complexity in total. In other words, the computational cost scales poorly with window size. Consider a series of length 8,760 representing hourly readings taken over a year's time. Producing the KZ-periodogram with a window of length 169 (about a week) requires about 250.2 million operations per iteration - not terrible for modern hardware - but with a window length 4,369 (about 6 months) the overhead grows to 167.2 billion per iteration, or about 502 billion in total if $k=3$ iterations is desired. The prohibitive cost may demand some creativity by the user needing to analyze the lower end of a spectrum. Some options are:
 
-1. Reduce the resolution of the signal by reducing the sampling frequency - i.e. reducing from an hourly sample rate to daily or weekly - which may be done either by aggregating the power (summing or averaging) of the original readings or by simply retaining every $S^*$'th sample and dropping those in between;
-2. Parallelize the algorithm over multiple threads to reduce clock-time in proportion with the number of available cores;
-3. If data is complete or missing values can be imputed beforehand then the algorithm can be implemented using FFT, providing improved performance of $O(k n m \log m)$.
+1. Reduce the resolution of the signal by reducing the sampling frequency - i.e. reducing from an hourly sample rate to daily or weekly by aggregating the original readings;
+2. Instead of evaluating all frequencies within a window, evaluate only a specified range;
+3. Parallelize the algorithm over multiple threads to reduce clock-time in proportion with the number of available cores;
+4. If data is complete or missing values can be imputed beforehand then the algorithm can be implemented using FFT, providing improved performance of $O(k n m \log m)$.
 
-Currently available implementations for computing the KZ-periodogram can produce impossibly long run-times for long signals and a large window. An implementation along the lines of option 3 above is sorely needed to expand the range of applications where KZFT can be practically applied. For now, a small modification can be made to the existing implementation of the `kza` R library to realize option 2, which can yield quite a large reduction in clock time (by a factor of $\frac{1}{\text{number of cores}}$) needed to evaluate a wider spectrum. A revised implementation is provided in Appendix 1.
+Currently available implementations for computing the KZ-periodogram can produce impossibly long run-times with long signals and a large window. An implementation along the lines of option 4 above is sorely needed to expand the range of applications where KZFT can be practically applied. For now, a small modification can be made to the existing implementation of the `kza` R library to realize option 3, which can yield quite a large reduction in clock time (by a factor of $\frac{1}{\text{number of cores}}$) needed to evaluate a wider spectrum. A revised implementation of this kind is provided in Appendix 1 and was used to obtain results herein.
 
-## Part III: Application to Traffic Event Data
+## Part III: Spectral Analysis Traffic Accidents in the Capital District
 
 ### Study Data
 
-Our research question is whether the occurrence of traffic accidents around the capital region of New York in time is governed by cyclical components. The basis for our study is a dataset produced by Moosavi, et al (2019) compiling US Traffic Accident events broadcast by various entities including "US and state departments of transportation, law enforcement agencies, traffic cameras, and traffic sensors within the road-networks." These events are sourced from two traffic event API services, integrated (with likely duplicate events removed), geocoded, and published for research use.
+Our research question is whether the occurrence of traffic accidents around the capital region of New York over time exhibits cyclicality. The basis for our study is a dataset produced by Moosavi, et al (2019) compiling US Traffic Accident events broadcast by various entities including "US and state departments of transportation, law enforcement agencies, traffic cameras, and traffic sensors within the road-networks." These events are sourced from two traffic event API services, integrated (with likely duplicate events removed), geocoded, and published for research use.
 
 ```{r, tab.cap="Two source event records which overlap in time"}
 cap %>%
@@ -527,7 +553,7 @@ We subset the full data to those events occurring in selected capital region zip
 
 1. Create a sequence of hourly periods spanning the time period covered by the research data;
 1. "Overlap-left-join" the events to the hourly series based on `Start Time` and `End Time` of the event and for the hourly periods - each event is matched to the one or more periods it falls in;
-1. Measure the portion of each hour (`(0, 1.0]`) which is covered by the event;
+1. Measure the portion of each hour $\in$ `(0, 1.0]` which is covered by the event;
 1. Summarize by hourly period the total duration of all events (any period with no events records 0 energy), denoting the resulting series as our signal `x(t)`.
 
 ```{r, tab.cap=" Discretization of the two events in Table 1 to create signal $X_t$"}
@@ -539,11 +565,11 @@ dat %>%
   kableExtra::kable_styling(font_size = 10)
 ```
 
-An event lasting exactly one hour contributes 1.0 energy to the series in total; this contribution is fully allocated to the 12th hour of the given day if it begins at exactly 11:00:00 and ends at 12:00:00 EST. If the event begins at 11:15:00 and ends at 12:15:00 then 0.75 energy is allocated to hour 12 and 0.25 to hour 13. The theoretical range of `x(t)` is $[0,\infty)$, though at the high end this would be a very bad day for drivers in Manhattan. The maximum energy observed in any hour is `r round(max(dat$x), 4)`.
+An event lasting exactly one hour contributes 1.0 energy to the series in total; this contribution is fully allocated to the 12th hour of the given day if it begins at exactly 11:00:00 and ends at 12:00:00 EST. If the event begins at 11:15:00 and ends at 12:15:00 then 0.75 energy is allocated to hour 12 and 0.25 to hour 13.^[Our decision to allocate energy to the periods spanned by an event suggests applications in areas such as transportation logistics and resource planning. Alternatively, we could allocate the full energy of an event to the period of its initiation which would be more in line with a risk perspective.] The theoretical range of `x(t)` is $[0,\infty)$, though at the high end this would be a very bad day for drivers in Manhattan. The maximum energy observed in any hour is `r round(max(dat$x), 4)`.
 
 Figure 9 shows the smoothed empirical distribution of hourly energies, with and without the point mass at 0 (most hours having no events). Figure 10 displays a two-week period in the signal. We see here anecdotal evidence of at least two unsurprising patterns: energy is highest on weekdays and lowest on weekends; and energy appears to concentrate around the 8th and 17th hours.
 
-```{r, fig.show='hold', fig.height = 3, fig.cap = "Smoothed distribution of measured hourly energy is shown in total (left) and for hours only with non-zero ernergy (right)."}
+```{r, fig.show='hold', fig.height = 3, fig.cap = "Smoothed distribution of measured hourly energy is shown in total (left) and with the point-mass at 0 removed (right)."}
 grid.arrange(nrow = 1,
              dat %>%
                ggplot(aes(x)) +
@@ -599,23 +625,30 @@ dat %>%
 
 We estimate the power spectral density of the signal to detect periodic components which may be embedded in it. In choosing appropriate parameters we anticipate waveforms with likely periods ranging from hours up to potentially monthly. We also recognize that traffic accidents are inherently random outcomes - "hourly traffic events" therefore presents a highly noisy signal and we will benefit from the smoothing produced by repeated iterations of KZFT. We select a window size $m=2184$ (13 weeks) and $k=3$ iterations given these considerations.
 
-The periodogram shown in Figure 10 reveals four dominant constituents at frequencies .04167 (24 hours), .0833 (12 hours), .1250 (8 hours), and .005952381 (168 hours or 1 week), as well as a number of others (6 to 10) of intermediate to minor importance. The 10 most prominent frequencies are all higher-order harmonics of the fundamental weekly frequency, indicating the spectrum is largely approximating a non-sinusoidal weekly pattern. A number of other constituents (62.4, 19.675676, 12.066298 day cycles) are harmonics of a frequency with 364-day period which is not visible within the selected window. In other words, the signal is strongly determined by a weekly and possible annual pattern which are likely not best specified as a linear combination of sinusoids but can at least be approximated as such.
+The periodogram (Figure 11) reveals four dominant constituents at frequencies .04167 (24 hours), .0833 (12 hours), .1250 (8 hours), and .005952381 (168 hours or 1 week), along with a number of others showing intermediate to minor importance or energy. The ten highest powered frequencies are all higher-order harmonics of the fundamental weekly frequency, indicating the spectrum is largely approximating a non-sinusoidal weekly pattern. A number of others (62.4, 19.675676, 12.066298 day cycles) are harmonics of a frequency with 364-day period which itself is not visible within the selected window. In other words, the signal is strongly determined by a weekly and possible annual pattern which are not well-specified as a linear combination of sinusoids but can at least be approximated as such.
 
 ```{r kzp_big, cache=TRUE}
-kzp_dat <- kzp(dat$x, m = 168*13, k = 3, ncores = 14)
-saveRDS(kzp_dat, "kzp_dat_2184_3.RDS")
+# kzp_dat <- kzp(dat$x, m = 168*13, k = 3, ncores = 14)
+# saveRDS(kzp_dat, "kzp_dat_2184_3.RDS")
+```
+
+```{r kzp_big2, cache=TRUE}
+kzp_dat <- kzp(dat$x, m = 168*13+1, k = 3, ncores = 14)
+saveRDS(kzp_dat, "kzp_dat_2185_3.RDS")
 ```
 
 ```{r}
 ## Constituents
 kzp_results <- tibble(p = kzp_dat$power,
                       a = kzp_dat$energy) %>%
-  mutate(f = (row_number()-1)/kzp_dat$window,
+  mutate(index = row_number()-1,
+         f = index/kzp_dat$window,
          period_hours = 1/f,
          period_days = period_hours/24) %>%
+  relocate(index) %>%
   arrange(desc(p)) %>%
-  mutate(harmonic = round((f %% (1/168)), 8) == 0,
-         include = (harmonic & row_number() <= 21))
+  mutate(harmonic = round(f %% f[5], 8) == 0,
+         include = (harmonic & row_number() <= 25))
 ```
 
 ```{r estimate_components, cache = TRUE}
@@ -625,16 +658,15 @@ f_include <- kzp_results %>%
 f_components <- matrix(nrow = nrow(dat), ncol = nrow(f_include))
 
 for (i in 1:ncol(f_components)) {
-  f_components[, i] <- kzft(dat$x, f = f_include$f[i], m = 168*13, k = 5)
+  f_components[, i] <- kzft(dat$x, f = f_include$f[i], m = 168*13+1, k = 5)
 }
 
 saveRDS(f_components, "f_components.RDS")
 ```
 
-
 ```{r plot_kzp_dat, fig.show = 'hold', out.width='50%', fig.height = 5, fig.cap="(left) Power Spectral Density of hourly traffic accident signal; (right) scree plot of power spectrum constituents"}
 par(mar=c(4,4,.1,.1))
-plot.kzp(kzp_dat, scale = "energy", ylab = "Power (=Energy^2)")
+plot.kzp(kzp_dat, scale = "power", ylab = "Power (=Energy^2)")
 
 kzp_results %>%
   arrange(desc(p)) %>%
@@ -651,11 +683,11 @@ kzp_results %>%
 
 #### Signal Reconstruction
 
-Signal reconstruction is possible by summation of individual KZFTs estimated about the dominant constituent frequencies detected in the original signal. This is a typical application for filters and spectral analysis results when working with signals produced by physical phenomena - sounds, vibrations, ocean tides and such. In our context, we prefer to think of signal reconstruction in terms of producing an expectation or estimated risk function in time.
+Signal reconstruction is possible by summation of individual KZFTs estimated about the dominant constituent frequencies detected in the original signal. De-noising signals in this way is a typical use for spectral estimates when working with signals produced by physical phenomena - sounds, vibrations, ocean tides and such. In our context, we may think of the signal reconstruction in terms of producing a risk pattern for open or ongoing traffic incidents over time.
 
-A scree plot provides visual indication of the importance of including each incremental constituent. Figure 12 shows the five dominant constituents individually over a week in March 2019 and the reconstructed signal using these components (plus the "DC" component `f0` which captures the constant or baseline power level) over the same two weeks. We observe in the reconstructed signal a pattern of twice-daily peaks occurring at 8:00 am and 5:00 pm, with higher peaks Monday-Friday compared to Saturday and Sunday. This demonstrates that a non-trivial calendar-weekly pattern can be approximated with just a small number of sinusoidal curves.
+A scree plot provides visual indication of the importance of including each incremental constituent. Figure 12 shows the five dominant constituents individually over a week in June 2019 and the reconstructed signal using these components over the same two weeks. We observe in the reconstructed signal a pattern of twice-daily peaks occurring at 8:00 am and 5:00 pm, with higher peaks Monday-Friday compared to Saturday and Sunday. This demonstrates that a non-trivial calendar-week pattern can be approximated with just a small number of sinusoidal curves.
 
-```{r, fig.show = 'hold', fig.height = 3, fig.width = 8, fig.cap = "(left) Top 5 constituent waveforms shown individually; (right) Event expectation based on these (includes $f_0$)"}
+```{r, fig.show = 'hold', fig.height = 3, fig.width = 8, fig.cap = "(left) Top 5 constituent waveforms shown individually; (right) Relative event risk based on these"}
 recon_5 <- data.frame(
   time = dat$t_start,
   f0 = 2*Re(f_components[,1]),
@@ -664,19 +696,20 @@ recon_5 <- data.frame(
   f3 = 2*Re(f_components[,4]),
   f4 = 2*Re(f_components[,5]),
   f5 = 2*Re(f_components[,6]),
-  recon = 2*Re(rowSums(f_components[,1:6])))
+  recon = 2*Re(rowSums(f_components[,1:6]))) %>%
+  mutate(relative_energy = recon / mean(recon))
 
 grid.arrange(nrow = 1,
              recon_5 %>%
                select(1, 3:7) %>%
                tidyr::pivot_longer(cols = c(f1:f5),
                                    names_to = "constituent",
-                                   values_to = "power") %>%
-               filter(time >= as.POSIXct('2019-06-10', tz = 'EST') - 5*60^2,
-                      time < as.POSIXct('2019-06-17', tz = 'EST') - 5*60^2) %>%
-               ggplot(aes(time + 5*60^2, power, color = constituent)) +
+                                   values_to = "energy") %>%
+               filter(time >= as.POSIXct('2019-06-10', tz = 'EST'),
+                      time < as.POSIXct('2019-06-17', tz = 'EST')) %>%
+               ggplot(aes(time, energy, color = constituent)) +
                geom_line() +
-               scale_y_continuous(name = "Energy") +
+               scale_y_continuous(name = "Marginal Energy") +
                scale_x_datetime(breaks = seq.POSIXt(from = as.POSIXct("2019-06-11 00:00:00", tz = 'EST'),
                                                       to = as.POSIXct("2019-06-17 00:00:00", tz = 'EST'),
                                                       by = "24 hours"),
@@ -686,43 +719,46 @@ grid.arrange(nrow = 1,
                      legend.position = "none"),
              
              recon_5 %>%
-               filter(time >= as.POSIXct('2019-06-10', tz = 'EST') - 5*60^2,
-                      time < as.POSIXct('2019-06-17', tz = 'EST') - 5*60^2) %>%
-               ggplot(aes(time+5*60^2, recon)) +
+               filter(time >= as.POSIXct('2019-06-10', tz = 'EST'),
+                      time < as.POSIXct('2019-06-17', tz = 'EST')) %>%
+               ggplot(aes(time, recon)) +
                geom_line() +
-               scale_y_continuous(name = "Expected Events") +
+               scale_y_continuous(name = "Combined Energy") +
                scale_x_datetime(breaks = c(seq.POSIXt(from = as.POSIXct("2019-06-10 08:00:00", tz = 'EST'),
                                                       to = as.POSIXct("2019-06-17 08:00:00", tz = 'EST'),
                                                       by = "24 hours"),
                                            seq.POSIXt(from = as.POSIXct("2019-06-10 17:00:00", tz = 'EST'),
                                                       to = as.POSIXct("2019-06-17 17:00:00", tz = 'EST'),
                                                       by = "24 hours")),
-                   date_labels = "%Y-%m-%d %H:%M") +
+                                date_labels = "%Y-%m-%d %H:%M") +
                theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        axis.title.x = element_blank())
+                     panel.grid.minor = element_blank(),
+                     axis.title.x = element_blank())
 )
 ```
 
-From the estimated PSD and the scree plot it appears we can complicate the signal reconstruction and explain greater systematic variation by including more than 5 components. In fact, the lower estimator variance of KZFT has reduced the risk of "over-fitting" noise in the original signal, suppressing estimates for unrelated frequencies toward 0 energy. We select the top 15 frequencies by rank which are also harmonic constituents of the fundamental weekly frequency. In pure rank terms these all fall within the top 20 frequencies ranked by power estimate.
+From the estimated PSD and the scree plot it appears we can complicate the signal reconstruction and explain greater systematic variation by including more than 5 components. We select the top 15 frequencies by rank which are also harmonic constituents of the fundamental weekly frequency. In pure rank terms these all fall within the top 20 frequencies ranked by power estimate.
 
-The resulting expected risk function reveals further interesting and intuitive temporal patterns. Weekdays exhibit the twice daily peaks at 08:00 and 17:00 mentioned earlier, but we now observe a single peak on Saturdays and Sundays occurring about mid-day, between the 12:00 and 13:00 hours. We also see smaller spikes in event incidence emerged in the late evening/early morning hours of Fridays and Saturdays, and less intuitively, Wednesdays. This can indicate increased roadway traffic in those hours compared to weeknights, higher incidence of impaired drivers, poor approximation of the true pattern, or some combination of these Finally, inclusion of the additional waveforms has increased the variance of the reconstructed signal, which now exhibits higher peak levels and faster ramping to and from these peaks.
+The resulting expected risk function reveals further interesting and intuitive temporal patterns. Weekdays exhibit the twice daily peaks at 08:00 and 17:00 mentioned earlier, but we now observe a single peak on Saturdays and Sundays occurring about mid-day, between the 12:00 and 13:00 hours. We also see increased energy in the late evening/early morning hours of Fridays and Saturdays, though also and less intuitively, Wednesdays. This can indicate increased roadway traffic in those hours compared to weeknights, higher incidence of impaired drivers, poor approximation of the true pattern, or some combination of these. Finally, inclusion of the additional components has clearly increased the variance of the reconstructed signal, which now exhibits higher peak levels and faster ramping to and from these peaks.
 
-```{r, fig.show = 'hold', fig.height = 4, fig.cap="(top) Signal reconstruction based on 15 constituent frequencies and $f_0$; (bottom) Average hourly event for 2019"}
+```{r, fig.show = 'hold', fig.height = 4, fig.cap="(top) Signal reconstruction based on 14 constituent frequencies and $f_0$; (bottom) Average hourly energy by weekday-hour for 2019"}
 grid.arrange(nrow = 2,
              data.frame(
                time = dat$t_start,
                recon = 2*Re(rowSums(f_components))) %>%
-               filter(time >= as.POSIXct('2019-06-03', tz = 'EST') - 5*60^2,
-                      time < as.POSIXct('2019-06-10', tz = 'EST') - 5*60^2) %>%
-               ggplot(aes(time+5*60^2, recon)) +
+               mutate(recon = recon / mean(recon)) %>%
+               filter(time >= as.POSIXct('2019-06-03', tz = 'EST'),
+                      time < as.POSIXct('2019-06-10', tz = 'EST')) %>%
+               ggplot(aes(time, recon)) +
                geom_line() +
+               scale_y_continuous(name = "Relative Energy") +
                scale_x_datetime(breaks = c(seq.POSIXt(from = as.POSIXct("2019-06-03 08:00:00", tz = 'EST'),
                                                       to = as.POSIXct("2019-06-17 08:00:00", tz = 'EST'),
                                                       by = "24 hours"),
                                            seq.POSIXt(from = as.POSIXct("2019-06-03 17:00:00", tz = 'EST'),
                                                       to = as.POSIXct("2019-06-17 17:00:00", tz = 'EST'),
                                                       by = "24 hours")),
-                                date_labels = "%Y-%m-%d %H:%M",
+                                date_labels = "%m-%d %H:%M",
                                 expand = c(0,0)) +
                theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8),
                      axis.title.x = element_blank(),
@@ -743,24 +779,13 @@ grid.arrange(nrow = 2,
                scale_x_continuous(breaks = c(0, 8, 17),
                                   expand = c(0,0),
                                   name = "Day of Week - Hour") +
-               scale_y_continuous(labels = scales::label_number(accuracy = .1)) +
+               scale_y_continuous(name = "Total Energy",
+                                  labels = scales::label_number(accuracy = .1)) +
                facet_grid(~ Day)
 )
 ```
 
-Because the signal is strongly determined by the fundamental weekly frequency and its harmonics, we are justified in ultimately selecting some method based in the time domain to derive final estimates. We may compare the results above to a naive estimator for day-hour periods - i.e. fitting a regression to these contrasts or simply calculating the mean by group. We note though that such a model would utilize 168 ($24 \times 7$) degrees of freedom, ignoring order and making no assumptions about smoothness in time.^[Our signal can be split into about 4 independent blocks, though we do not treat them independently. It would seem that $4 \times 2 \times 15$ would serve as a good estimate for total d.f. for a reconstruction based on 15 constituents derived from a single iteration of KZFT, but this would decrease with additional iterations - Formula 1.1.19 Loneck?]
-
-<!-- ### Analysis 2 -->
-
-<!-- Non-stationariy over multiple years (time allowing) -->
-
-```{r, eval = FALSE}
-data.frame(
-  time = dat$t_start,
-  recon = 2*Re(f_components[, 1])) %>%
-  ggplot(aes(time, recon)) +
-  geom_line()
-```
+Because the signal is strongly determined by a fundamental weekly frequency and its harmonics, we could be justified in ultimately selecting some method based in the time domain to produce estimates. We may compare the results above to a naive estimator for day-hour periods - i.e. fitting a regression to these contrasts or simply calculating the mean by group. We note though that such a model would utilize 168 ($24 \times 7$) degrees of freedom, ignoring order and making no assumptions about smoothness in time.^[Our signal can be split into about 4 independent blocks, though we do not treat them independently. It would seem that $4 \times 2 \times 15$ would serve as a good estimate for total d.f. for a reconstruction based on 15 constituents derived from a single iteration of KZFT, but this would decrease with additional iterations - Formula 1.1.19 Loneck?]
 
 ### Discussion
 
@@ -774,9 +799,27 @@ etc
 
 \begin{hangparas}{.25in}{1}
 
+Dapello, Joel, Tiago Marques, Marcus Schermer, Haofeng Li, David Cox, and James J. DiCarlo. 2020. "Simulating a Primary Visual Cortex at the Front of CNNs Improves Robustness to Image Perturbations." Advances in Neural Information Processing Systems 33 (NeurIPS 2020): 11467-11478.
+
 Dominguez, A. "Highlights in the History of the Fourier Transform." \emph{IEEE Pulse}, Volume 7, Issue 1, January 2016. https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7389485.
 
-Zurbenko I. \emph{The Spectral Analysis of Time Series}. New York: North-Holland; 1986.
+Gundla M.P (2025). The Transformative Impact of IoT on the Insurance Industry, European Journal of Computer Science and Information Technology, 13 (5), 77-90
+
+F. J. Harris, "On the use of windows for harmonic analysis with the discrete Fourier transform," Proceedings of the IEEE, vol. 66, no. 1, pp. 51-83, Jan. 1978, doi: 10.1109/PROC.1978.10837.
+
+McCallum, J. (2023). U.S. Bureau of Labor Statistics (2026) – with minor processing by Our World in Data. https://ourworldindata.org/grapher/historical-cost-of-computer-memory-and-storage
+
+Microsoft. (2019). 2019 Manufacturing Trends Report. Microsoft Industry Clouds. https://info.microsoft.com/rs/157-GQE-382/images/EN-US-CNTNT-Report-2019-Manufacturing-Trends.pdf
+
+Moosavi, S., et al. "A Countrywide Traffic Accident Dataset." arXiv:1906.05409 (2019). Data accessed from https://www.kaggle.com/datasets/sobhanmoosavi/us-accidents/data
+
+Yang, W. and Žurbenko, I. "Kolmogorov-Zurbenko Filters." \emph{WIREs Computational Statistics}. (2010) 2, no. 3, 340–351, https://doi.org/10.1002/wics.71, 2-s2.0-78651530981. 
+
+Žurbenko I. (1986). \emph{The Spectral Analysis of Time Series}. New York: North-Holland.
+
+Žurbenko, I. and Porter, P. S. (1998). Construction of high-resolution wavelets. Signal Processing, 65(2), 315–327. https://doi.org/10.1016/s0165-1684(97)00226-0.
+
+Žurbenko, I., et al. (2021). \emph{High-Resolution Noisy Signal and Image Processing}. Newcastle upon Tyne: Campridge Scholars Publishing.
 
 \end{hangparas}
 
@@ -886,7 +929,7 @@ stopCluster(cl)
 \newpage
 ## Appendix 3: Enhanced `plot.kzp()`
 
-The `plot.kzp()` method from `kza` is rewritten to accommodate several options for scale of the plotted spectral density with the `scale` argument. The original option is preserved - this is something like total power but increases with `k`. Options for the energy and power spectral densities are added. We have also added the option to include or exclude $f_0$ (the DC component) from the plot - including it will often conceal what is happening across the spectrum due to scale differences.
+The `plot.kzp()` method from `kza` is rewritten to accommodate several options for scale of the plotted spectral density with the `scale` argument. The original option is preserved - this displays on an information scale. Options for power and energy spectral densities are added. We have also added the option to include or exclude $f_0$ (the DC component) from the plot - including it will often conceal what is happening across the spectrum due to scale differences.
 
 Support for plotting smoothed spectral densities is removed out of convenience rather than necessity.
 
