@@ -104,6 +104,26 @@ tibble(t = simdat$time,
     f_components2[, i] <- kzft(dat2$x, f = f_include$f[i], m = 168*13, k = 5)
   }
   
-
+  
+  dat2 %>%
+    filter(t_start >= as.POSIXct("2021-01-01 00:00:00", tz = 'EST'),
+           t_start < as.POSIXct("2022-01-01 00:00:00", tz = 'EST')) %>%
+    mutate(Day = lubridate::wday(t_start, label = TRUE) %>%
+             factor(levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")),
+           Hour = hour(t_start)) %>%
+    group_by(Day, Hour) %>%
+    summarise(x = sum(x)) %>%
+    ungroup() %>%
+    mutate(rel_risk = x / mean(x)) %>%
+    ggplot(aes(x = Hour, y = rel_risk)) +
+    geom_bar(stat = "identity", position = position_dodge(), width = 1) +
+    theme(panel.spacing.x = unit(0, "lines"),
+          panel.grid.minor = element_blank()) +
+    scale_x_continuous(breaks = c(0, 8, 17),
+                       expand = c(0,0),
+                       name = "Day of Week - Hour") +
+    scale_y_continuous(name = "Total Energy",
+                       labels = scales::label_number(accuracy = .1)) +
+    facet_grid(~ Day)
 
 
