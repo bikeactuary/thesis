@@ -1,0 +1,214 @@
+---
+title: Spectral Analysis of Traffic Accidents in New York's Capital Region
+subtitle: Thesis Committee Presentation
+institute: |
+  University at Albany  
+  College of Integrated Health Sciences  
+  Department of Biostatistics
+author: Michael Barr
+output: 
+  beamer_presentation:
+    latex_engine: xelatex
+    theme: Warsaw
+  classoption: aspectratio=169
+header-includes:
+  - \setbeamerfont{frametitle}{size=\normalsize}
+  - \setbeamerfont{caption}{size=\footnotesize}
+  - \usepackage[labelformat=empty, font=scriptsize]{caption}
+  - \captionsetup[table]{font=scriptsize}
+date: "2026-04-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(emoji)
+```
+
+# Preliminaries
+
+## Researcher
+
+Educational Background
+
+* M.S. Biostatistics Candidate (May 2026)
+* B.S. Mathematics - University at Albany (2013)
+* B.A. Political Science - University at Albany (2010)
+
+Professional Designations
+
+* Credentialed Property & Casualty Actuary (ACAS)
+* Member, American Academy of Actuaries (MAAA)
+* Chartered Property & Casualty Underwriter (CPCU)
+
+## Research Question
+
+What is the spectral density of traffic accidents in New York's Capital Region?
+
+We evaluate the performance of the Kolmogorov-Zurbenko Fourier Transform (KZFT) in reconstructing a relative pattern in time for arrival expectation of highly random traffic accident events and validate the result out-of-time.
+
+## Growth in sensor deployment creates demand for practitioners equipped with appropriate statistical tools for analysis of signal data
+
+- Expansive integration of sensors into consumer products
+- Real-time streaming signals due to embedded connectivity (bluetooth, wi-fi)
+- Reduced cost of physical data storage enabling retention of billions of data streams
+
+```{r, out.width = '49%', fig.align='center', fig.show='hold'}
+knitr::include_graphics(c("sensor_cost.png", "iot_conns.png"))
+```
+
+\footnotesize Source: Microsoft 2019 Manufacturing Trends Report
+
+## While the insurance industry is rapidly incorporating sensors into many personal and commercial product lines, the actuarial profession has no educational component and almost no literature in this domain
+
+A search of the Casualty Actuarial Society's Research Library returns a single publication on spectral analysis which aims to introduce the Discrete Fourier Transform to the profession. No application is included (though in true actuarial fashion, an Excel workbook is provided).
+
+Halliwell, L.J. (2014). "The Discrete Fourier Transform and Cyclical Overflow." Variance 8, 73–79, 2014.
+
+# A jog to spectral density analysis with KZFT (Parts I-II)
+
+## In Parts I-II we construct a simulated signal to show the limitations of temporal methods in the context of signals governed by cyclical processes
+
+```{r, fig.height = 4, fig.cap = "$X(t) = 1.5 \\sin(\\frac{2 \\pi}{12.5}) + .5 \\sin(\\frac{2 \\pi}{10}) + \\sin(\\frac{2 \\pi}{168}) + N(0,\\sigma=2)$"}
+plot(g1)
+```
+
+## We review Fourier analysis and discuss estimator properties before introducing the Kolmogorov-Zurbenko Fourier Transform (KZFT), comparing their fidelity in recovering the correct energies from the signal
+
+```{r, out.width='49%', fig.align='center', fig.show='hold', fig.cap = "Spectral density (energy) based on FFT (left) and on $KZFT_{\\nu,4201,6}$ to produce the KZ-periodogram (right)"}
+par(mar=c(4,4,.1,.1))
+
+plot(x = seq(0, .5, by = 1/8640),
+     y = (abs(2*fft(simdat$x2))/(nrow(simdat)))[1:4321],
+     ylim = c(0.03, 1.48), type = "l", ylab = "Energy", xlab = "Frequency")
+abline(h = 0.5, col = "red", lty = 2, lwd = .2)
+abline(h = 1.0, col = "red", lty = 2, lwd = .2)
+abline(h = 1.5, col = "red", lty = 2, lwd = .2)
+
+plot(kzp_sim_x2, scale = "energy")
+abline(h = 0.5, col = "red", lty = 2, lwd = .2)
+abline(h = 1.0, col = "red", lty = 2, lwd = .2)
+abline(h = 1.5, col = "red", lty = 2, lwd = .2)
+```
+
+## Part II concludes with a discussion of the computational complexity of estimating a spectral density with KZFT, and possible solutions
+
+* DFT (by definition): $O(n^2)$
+* FFT: $O(n \log n)$
+* KZFT (available implementation): $O(k n m^2)$
+
+Performance solutions
+
+1. Reduce signal resolution (aggregate energy) and run multiple analyses
+2. Evaluate only specified range of frequencies observable within window
+3. Parallelized implementation to reduce run-time in proportion to available machine cores *(Provided in Appendix 1)*
+4. FFT-based implementation to realize $O(k n m \log m)$ complexity *(Needed)*
+
+# Traffic Accident Analysis (Part III)
+
+## Study data provided by Moosavi, et al. (2019) contains traffic accident events with location, start and end times across the U.S. - we subset to events in the NY Capital District and take 2019 as the training period (2020-2022 will serve validation)
+
+```{r}
+cap %>%
+  select(ID, Start_Time, End_Time, Zipcode, Description) %>%
+  mutate(Description = substr(Description, 1, 30)) %>%
+  filter(ID %in% c("A-2149438", "A-2149419")) %>%
+  arrange(Start_Time) %>%
+  kableExtra::kable(#format = "latex",
+                    latex_options = "HOLD_position") %>%
+  kableExtra::kable_styling(font_size = 6)
+```
+
+The source data is restructured as a time series, with "energy" `x = event duration (hours)` allocated to the periods spanned
+
+```{r}
+dat %>% 
+  filter(t_start >= as.POSIXct('2019-04-05 06:00:00', tz = 'EST'),
+         t_start < as.POSIXct('2019-04-05 11:00:00', tz = 'EST'))  %>%
+  kableExtra::kable(#format = "latex",
+                    latex_options = "HOLD_position") %>%
+  kableExtra::kable_styling(font_size = 6)
+```
+
+## Density analysis of the hourly energies shows a high variance signal with 0 the most frequent recorded energy
+
+```{r, out.height='70%', fig.align='center', fig.cap = "Smoothed distribution of measured hourly energy shown in total (left) and with the point-mass at 0 removed (right)."}
+plot(g2)
+```
+
+## Any systematic component which governs this signal cannot be elicited by visualizing time-segments of the raw signal
+
+```{r, fig.height = 3.2, fig.cap="Signal energy for two-week period from Sunday, October 13 through Saturday, October 26, 2019"}
+p2
+```
+
+## Power spectral density is estimated with $KZFT_{\nu,2185,3}$ revealing strong weekly pattern composed of $f_{\frac{1}{168}}$ and multiple harmonic constituents
+
+```{r kzp, fig.show = 'hold', out.width='49%', fig.cap="(left) Power Spectral Density of hourly traffic accident signal; (right) scree plot of spectral constituents on power scale"}
+par(mar=c(4,4,.1,.1))
+plot.kzp(kzp_dat, scale = "power", ylab = "Power (=Energy^2)")
+p3
+```
+
+## Signal reconstruction based on 14 constituents produces an intuitive weekly pattern yet seems to understate the magnitudes of relative hourly energies 
+
+```{r}
+plot(g4)
+```
+
+## We define 2019 aggregate week-hour relative energy as our null model and compare performance to the KZFT reconstructed weekly pattern also stated relative to mean (reconstructed) energy. We evaluate each model against the patterns of years 2020-2022 individually.
+```{r, tab.cap = "Validation result for KZFT and null model for estimated weekly pattern" }
+rmse_val %>%
+  kableExtra::kable(#format = "pdf",
+                    digits = c(4,4)) %>%
+  kableExtra::kable_styling(font_size = 6)
+```
+## Visual inspection shows improved (relative) forecast of KZFT.
+
+```{r}
+p5
+```
+
+## Unexpected observation: actual results notably exceed est. Fri-Sun p.m.
+
+```{r}
+circ <- data.frame(Day = c("Fri", "Sat", "Sun") %>%
+                     factor(levels = c("Mon", "Tue", "Wed",
+                                       "Thu", "Fri", "Sat", "Sun")),
+                   x0 = c(17,20,19), y0 = c(2,.7,1), 
+                   a = c(4,3,3), b = c(2,.6,1))
+
+val_3y %>%
+  filter(Year == 2021) %>%
+  pivot_longer(c(kzft_forecast, naive_forecast, relative_energy),
+               names_to = "x",
+               values_to = "relative_risk") %>%
+  ggplot(aes(Hour, relative_risk, color = x)) +
+  geom_line() +
+  scale_y_continuous(name = "Relative Energy") +
+  scale_x_continuous(breaks = c(0, 8, 17),
+                     expand = c(0,0),
+                     name = "Day-Hour of Week") +
+  scale_color_manual(values = c("red", "blue", "black")) +
+               theme(legend.title = element_blank(),
+                     legend.position = "inside",
+                     legend.position.inside = c(.85, .8),
+                     legend.background = element_blank(),
+                     legend.text = element_text(size = 10),
+                     legend.key = element_rect(fill = NA)) +
+               theme(panel.grid.minor = element_blank()) +
+  ggforce::geom_ellipse(data = circ,
+                       aes(x0 = x0, y0 = y0, a = a, b = b, angle = pi, group = Day),
+                       inherit.aes = FALSE,
+                       color = "green",
+                       linetype = "dashed") +
+  ggtitle("2021") +
+  facet_grid(~ Day) +
+  theme(panel.spacing = unit(0, "lines"))
+```
+
+
+## Conclusion
+
+
+
+
