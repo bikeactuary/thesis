@@ -20,7 +20,7 @@ date: "2026-04-21"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 library(emoji)
 ```
 
@@ -199,16 +199,34 @@ val_3y %>%
   ggforce::geom_ellipse(data = circ,
                        aes(x0 = x0, y0 = y0, a = a, b = b, angle = pi, group = Day),
                        inherit.aes = FALSE,
-                       color = "green",
+                       color = "darkgreen",
                        linetype = "dashed") +
   ggtitle("2021") +
   facet_grid(~ Day) +
   theme(panel.spacing = unit(0, "lines"))
 ```
 
+## This may hint at evidence of shifting driving behaviors (driver impairment) to explain increased traffic accidents and fatalities following pandemic
 
-## Conclusion
+```{r, fig.align='center', out.width='70%', fig.show='hold'}
+knitr::include_graphics("tnr.png")
+```
 
+KZFT is suitable for analyzing non-stationary spectra over time and this is a potential area for future research.
 
+# Conclusion
 
+## This study sought to demonsrate the applicability of spectral analysis to new domains
 
+* Spectral analysis typically used with signals determined by physical forces - objects that spin, oscillate, vibrate, orbit
+* We apply here to patterns of population behaviors
+* Deployment of sensors for human activity tracking and various "smart" products presents new areas for application
+
+Original contributions include
+
+* Discussion of computational complexity of KZFT in comparison to FFT
+* Parallel implementation of `kzp()` method for estimating power spectrum, evaluating frequencies concurrently
+* Novel application to a signal not governed by physical forces
+* Analysis framework which may be utilized by researchers in the insurance, auto telematics industries and beyond
+
+## Questions

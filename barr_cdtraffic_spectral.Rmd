@@ -752,7 +752,7 @@ g3 <- grid.arrange(nrow = 1,
                      axis.title.x = element_blank())
 )
 
-g3
+plot(g3)
 ```
 
 From the estimated PSD and the scree plot it appears we can complicate the signal reconstruction and explain greater systematic variation by including more than 5 components. We select the top 15 frequencies by rank which are also harmonic constituents of the fundamental weekly frequency. In pure rank terms these all fall within the top 20 frequencies ranked by power estimate.
@@ -988,6 +988,8 @@ Gundla M.P (2025). The Transformative Impact of IoT on the Insurance Industry, E
 
 Harris, F.J. (1978). "On the use of windows for harmonic analysis with the discrete Fourier transform," Proceedings of the IEEE, vol. 66, no. 1, pp. 51-83, Jan. 1978, doi: 10.1109/PROC.1978.10837.
 
+Marsh, Laura, Alex Pareene (Hosts). (2022, March 9). Too Fast or Too Furious? [Audio podcast episode]. In \emph{The Politics of Everything}. The New Republic. https://newrepublic.com/article/165661/rise-traffic-deaths-car-crashes-pandemic-stress
+
 McCallum, J. (2023). U.S. Bureau of Labor Statistics (2026) – with minor processing by Our World in Data. https://ourworldindata.org/grapher/historical-cost-of-computer-memory-and-storage
 
 Microsoft. (2019). 2019 Manufacturing Trends Report. Microsoft Industry Clouds. https://info.microsoft.com/rs/157-GQE-382/images/EN-US-CNTNT-Report-2019-Manufacturing-Trends.pdf
@@ -997,8 +999,6 @@ Moosavi, S., et al. "A Countrywide Traffic Accident Dataset." arXiv:1906.05409 (
 National Highway Traffic Safety Administration. (2022, May 17). Newly Released Estimates Show Traffic Fatalities Reached a 16-Year High in 2021 [Press Release]. https://www.nhtsa.gov/press-releases/early-estimate-2021-traffic-fatalities
 
 National Safety Council. (2021, March 4). Motor Vehicle Deaths in 2020 Estimated to be Highest in 13 Years, Despite Dramatic Drops in Miles Driven [Statement]. https://www.nsc.org/newsroom/motor-vehicle-deaths-2020-estimated-to-be-highest
-
-Marsh, Laura, Alex Pareene (Hosts). (2022, March 9). Too Fast or Too Furious? [Audio podcast episode]. In \emph{The Politics of Everything}. The New Republic. https://newrepublic.com/article/165661/rise-traffic-deaths-car-crashes-pandemic-stress
 
 Yang, W. and Žurbenko, I. "Kolmogorov-Zurbenko Filters." \emph{WIREs Computational Statistics}. (2010) 2, no. 3, 340–351, https://doi.org/10.1002/wics.71, 2-s2.0-78651530981.
 
@@ -1196,6 +1196,13 @@ kzft <- function(x, f=0, m=1, k=5)
 \newpage
 ## Appendix 5: `sessionInfo()`
 
+Provided for reproducibility
+
 ```{r}
 sessionInfo()
 ```
+
+```{r, include = FALSE}
+rmarkdown::render("slides/20260421_defense_presentation.Rmd")
+```
+
