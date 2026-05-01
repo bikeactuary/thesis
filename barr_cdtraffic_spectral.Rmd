@@ -13,10 +13,16 @@ title: |
   |
   |
   | College of Integrated Health Sciences
-  | Department of Biostatistics
+  | Department of Epidemiology and Biostatistics
   | 
   | 
-date: "May 2026"
+date: |
+  | May 2026
+  | 
+  | 
+  | 
+  | 
+  | \faGithub \ github.com/bikeactuary/thesis
 documentclass: report
 output: 
   pdf_document:
@@ -42,6 +48,7 @@ header-includes:
   - \renewcommand{\enotesize}{\normalsize}
   - \let\footnote=\endnote
   - \usepackage{hanging}
+  - \usepackage{fontawesome}
 ---
 
 ```{r opts, include=FALSE}
